@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lock / Unlock Toggle</title>
+  <meta name="description" content="A minimal, accessible lock/unlock UI with SVG animation.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0b0f14; --card:#101722; --ink:#e7edf3; --muted:#a7b2c1; --accent:#6ae3ff; --ok:#72ffa1; --warn:#ffb366; --ring:#1d2837;
+      --shadow:0 12px 30px rgba(0,0,0,.35), 0 3px 10px rgba(0,0,0,.25);
+      --r:20px;
+    }
+    @media (prefers-color-scheme: light){
+      :root{ --bg:#f6f8fb; --card:#ffffff; --ink:#0e141c; --muted:#5a6677; --accent:#0ea5e9; --ok:#16a34a; --warn:#ea580c; --ring:#d9e0ea; --shadow:0 10px 30px rgba(2,6,23,.08), 0 2px 10px rgba(2,6,23,.06); }
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial; background:radial-gradient(70vw 70vh at 80% -10%, rgba(99,102,241,.18), transparent 55%), var(--bg); color:var(--ink); display:grid; place-items:center}
+
+    .card{ width:min(520px, 92vw); background:linear-gradient(180deg, var(--card), color-mix(in oklab, var(--card) 80%, #000)); border:1px solid var(--ring); border-radius:24px; box-shadow:var(--shadow); padding:24px; display:grid; gap:18px }
+
+    h1{margin:0; font-size:clamp(22px, 4.5vw, 32px); letter-spacing:.2px}
+    p{margin:0; color:var(--muted)}
+
+    .scene{ display:grid; place-items:center; padding:8px 0 }
+
+    /* Lock SVG sizing */
+    svg{ width:160px; height:160px; }
+
+    /* Button row */
+    .row{ display:flex; gap:10px; flex-wrap:wrap }
+    .btn{ appearance:none; border:none; padding:12px 16px; border-radius:999px; font-weight:700; cursor:pointer; box-shadow:var(--shadow); transition:transform .06s ease, filter .2s ease }
+    .btn:active{ transform:translateY(1px) }
+    .primary{ background:linear-gradient(135deg, var(--accent), var(--ok)); color:#041016 }
+    .ghost{ background:linear-gradient(180deg, var(--card), color-mix(in oklab, var(--card) 70%, #000)); color:var(--ink); border:1px solid var(--ring) }
+
+    .status{ display:flex; align-items:center; gap:8px; font-weight:600 }
+    .dot{ inline-size:10px; block-size:10px; border-radius:50%; background:var(--warn); box-shadow:0 0 0 4px color-mix(in oklab, var(--warn) 25%, transparent) }
+    .dot.ok{ background:var(--ok); box-shadow:0 0 0 4px color-mix(in oklab, var(--ok) 25%, transparent) }
+
+    /* ===== Lock animation states ===== */
+    .padlock{ filter: drop-shadow(0 10px 24px rgba(0,0,0,.28)); }
+    .shackle{ transform-origin: 80px 54px; transition: transform .35s cubic-bezier(.2,.7,.2,1.1) }
+    .body{ transition: transform .25s ease, fill .25s ease }
+    .keyhole{ transition: transform .25s ease, opacity .25s ease }
+
+    .is-unlocked .shackle{ transform: rotate(-28deg) translate(-6px, -4px) }
+    .is-unlocked .body{ transform: translateY(0); }
+    .is-unlocked .keyhole{ transform: translateY(1px); opacity:.85 }
+
+    .hint{ font-size:12px; color:var(--muted) }
+
+    /* Optional PIN input (no validation beyond demo) */
+    .pin{ display:flex; gap:10px; align-items:center }
+    .pin input{ width:120px; padding:10px 12px; border-radius:10px; border:1px solid var(--ring); background:color-mix(in oklab, var(--card) 80%, #000); color:var(--ink); outline:none }
+    .pin input:focus{ border-color:color-mix(in oklab, var(--accent) 40%, var(--ring)); box-shadow:0 0 0 6px color-mix(in oklab, var(--accent) 15%, transparent) }
+  </style>
+</head>
+<body>
+  <main class="card" role="region" aria-label="Lock / Unlock Demo">
+    <header>
+      <h1>Lock / Unlock</h1>
+      <p>Click the toggle or press <kbd>Space</kbd>/<kbd>Enter</kbd>. The SVG padlock animates open and closed.</p>
+    </header>
+
+    <section class="scene" aria-live="polite">
+      <!-- Accessible button controlling state -->
+      <button id="toggle" class="btn primary" aria-pressed="false" aria-controls="padlock" aria-label="Unlock">
+        🔓 Unlock
+      </button>
+      <div class="status" style="margin-top:10px">
+        <span class="dot" id="dot" aria-hidden="true"></span>
+        <span id="statusText">Locked</span>
+      </div>
+
+      <!-- Padlock SVG -->
+      <svg id="padlock" class="padlock" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+        <title id="title">Padlock</title>
+        <desc id="desc">Visual lock that opens when unlocked.</desc>
+
+        <!-- Shackle -->
+        <path class="shackle" fill="#cbd5e1" d="M80 30c-18 0-32 14-32 32v16h14V62a18 18 0 0 1 36 0v12h14V62c0-18-14-32-32-32z" />
+
+        <!-- Body -->
+        <g class="body">
+          <rect x="40" y="70" rx="14" ry="14" width="80" height="70" fill="#1f2937" stroke="#0a0f16" stroke-width="2"/>
+          <rect x="46" y="76" rx="10" ry="10" width="68" height="58" fill="#0f172a" />
+        </g>
+
+        <!-- Keyhole -->
+        <g class="keyhole" opacity=".9">
+          <circle cx="80" cy="102" r="7" fill="#f1f5f9" />
+          <rect x="76.5" y="104" width="7" height="18" rx="3.5" fill="#f1f5f9" />
+        </g>
+      </svg>
+
+      <p class="hint">Tip: Hold the button to see focus outlines; try keyboard too.</p>
+    </section>
+
+    <section class="row" aria-label="Controls">
+      <button id="lockBtn" class="btn ghost" aria-label="Lock">🔒 Lock</button>
+      <button id="unlockBtn" class="btn ghost" aria-label="Unlock">🔓 Unlock</button>
+    </section>
+
+    <section class="pin" aria-label="Optional PIN (demo only)">
+      <label for="pin" class="hint">Enter PIN (1234) to unlock:</label>
+      <input id="pin" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" placeholder="••••" aria-describedby="pinHelp" />
+      <span id="pinHelp" class="hint">Demo validation only</span>
+    </section>
+  </main>
+
+  <script>
+    const padlock = document.getElementById('padlock');
+    const toggle = document.getElementById('toggle');
+    const dot = document.getElementById('dot');
+    const statusText = document.getElementById('statusText');
+    const lockBtn = document.getElementById('lockBtn');
+    const unlockBtn = document.getElementById('unlockBtn');
+    const pinInput = document.getElementById('pin');
+
+    let unlocked = false;
+
+    function render(){
+      padlock.classList.toggle('is-unlocked', unlocked);
+      toggle.setAttribute('aria-pressed', String(unlocked));
+      toggle.textContent = unlocked ? '🔒 Lock' : '🔓 Unlock';
+      toggle.setAttribute('aria-label', unlocked ? 'Lock' : 'Unlock');
+      statusText.textContent = unlocked ? 'Unlocked' : 'Locked';
+      dot.classList.toggle('ok', unlocked);
+    }
+
+    function tryUnlockWithPin(){
+      // Simple demo: correct PIN is 1234
+      if(pinInput.value && pinInput.value.trim() === '1234'){
+        unlocked = true; render();
+      }
+    }
+
+    toggle.addEventListener('click', () => { 
+      if(!unlocked){ // if locked, allow PIN shortcut or direct toggle
+        if(pinInput.value){ tryUnlockWithPin(); return; }
+      }
+      unlocked = !unlocked; render();
+    });
+
+    lockBtn.addEventListener('click', () => { unlocked = false; render(); });
+    unlockBtn.addEventListener('click', () => { if(pinInput.value){ tryUnlockWithPin(); } else { unlocked = true; render(); } });
+
+    // Keyboard access: Space/Enter toggles
+    toggle.addEventListener('keydown', (e) => {
+      if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); toggle.click(); }
+    });
+
+    // Auto render on load
+    render();
+  </script>
+</body>
+</html
